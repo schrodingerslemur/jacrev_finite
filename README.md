@@ -13,7 +13,7 @@ JacrevFinite class definition can be found in the jacrev_finite.py file
 #### Parameters
 JacrevFinite(network=, wrapper=None, dim=None, num_args, delta=1e-5)(input<sub>0</sub>)
 - network: Callable function which takes in input<sub>1</sub> and returns an output
-- wrapper: Optional function which takes in input<sub>0</sub> and returns <sub>1</sub>. If not specified, input<sub>1</sub> is input<sub>0</sub>
+- wrapper: Optional function which takes in input<sub>0</sub> and returns input<sub>1</sub>. If not specified, input<sub>1</sub> is input<sub>0</sub>
 - dim: Singleton dimensions over which to append delta tensors to. If not specified, singleton dimension is added at index 0.
 - num_args: Specifies over which input<sub>0</sub> the output's derivative should be taken with respect to
 - delta: Optional value to change. Default is 1e-5
