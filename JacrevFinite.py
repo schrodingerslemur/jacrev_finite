@@ -1,7 +1,8 @@
 import torch
+from torch import Tensor
 
 class JacrevFinite:
-    def __init__(self, *, network, wrapper=None, dim=None, num_args):
+    def __init__(self, *, network, wrapper=None, dim=None, num_args, delta=1e-5):
         """
         Initialize the JacrevFinite object.
 
@@ -22,7 +23,7 @@ class JacrevFinite:
         self.network = network
         self.wrapper = wrapper
         self.num_args = num_args
-        self.delta = 1e-5
+        self.delta = delta
         self.dim = dim
 
     def __call__(self, *args):
@@ -36,11 +37,23 @@ class JacrevFinite:
             torch.Tensor: The computed Jacobian matrix.
         """
         assert self.num_args < len(args), 'invalid num_args'
-        
-        self.inputs = list(args)
+
+        # Converts inputs to a list of tensors
+        if len(args) == 1:
+            self.inputs = args[0]
+            if not isinstance(self.inputs, Tensor):
+                self.inputs = torch.tensor(self.inputs)
+            self.inputs = self.inputs.unsqueeze(0)
+            self.inputs = list(self.inputs)
+
+        else:
+            self.inputs = list(args)
+            self.inputs = [inputs if isinstance(inputs, Tensor) else torch.tensor(inputs) for inputs in self.inputs]
+    
         self.n_inputs = len(args)
         self.output_dim = self.get_outputdim()
         
+        # Forward passes
         input1 = self.delta_forward()
         input2 = self.wrapper_forward(input1)
         output = self.net_forward(input2)
@@ -56,26 +69,43 @@ class JacrevFinite:
             list: The list of new inputs with the batch tensor included.
         """
         tensor = self.inputs[self.num_args]
-        flat_tensor = tensor.view(-1)
-
+        
         if self.dim is None:
-            batch_tensor = tensor.clone().unsqueeze(0)  # Add new singleton dimension
+            tensor = tensor.clone().unsqueeze(0)  # Add new singleton dimension
             dim = 0  # The dimension along which to concatenate
         else:
-            batch_tensor = tensor.clone()
             dim = self.dim  # Use the specified dimension
 
-        assert batch_tensor.size(dim) == 1, 'wrong dimension to add batch to, size must = 1'
+        assert tensor.size(dim) == 1, 'wrong dimension to add batch to, size must = 1'
 
-        for i in range(flat_tensor.size(0)):
-            delta_tensor = tensor.clone()
-            delta_tensor.view(-1)[i] += self.delta
-            if self.dim is None:
-                delta_tensor = delta_tensor.unsqueeze(0)
-            batch_tensor = torch.cat((batch_tensor, delta_tensor), dim=dim)
+        num_rep = tensor.view(-1).size(0) # Number of repetitions
+        num_dim = tensor.dim()
+
+        # Reshape_dim (move dim to last value and multiply by batch size)
+        reshape_dim = list(tensor.shape)
+        reshape_dim.pop(dim)
+        reshape_dim.insert(len(reshape_dim), num_rep)
+
+        # Permute_dim
+        permute_list = range(num_dim)
+        permute_list = [num if num<dim else num-1 for num in permute_list]
+        permute_list[dim] = num_dim-1
+
+        # Add delta onto every element through repeating tensors and adding identity matrix multiplied by delta
+        repeated_tensor = tensor.view(-1).unsqueeze(0).repeat(num_rep, 1)
+        delta_tensor = torch.eye(num_rep, dtype =tensor.dtype, device=tensor.device)*self.delta
+        append_tensor = repeated_tensor + delta_tensor
+
+        # Restructure tensor 
+        append_tensor = torch.t(append_tensor)
+        append_tensor = append_tensor.reshape(reshape_dim).permute(permute_list)
+
+        # Concatenate with original tensor
+        batch_tensor = torch.cat((tensor, append_tensor), dim=dim)
 
         self.batch_size = batch_tensor.size(dim)
 
+        # Replace original tensor with batch_tensor
         inputs_copy = self.inputs.copy()
         inputs_copy.pop(self.num_args)
 
@@ -124,7 +154,7 @@ class JacrevFinite:
         Returns:
             torch.Tensor: The output of the network.
         """
-        if isinstance(input2, list):
+        if not isinstance(input2, Tensor):
             output = self.network(*input2)
         else:
             output = self.network(input2)
@@ -171,11 +201,5 @@ class JacrevFinite:
         """
         inputs = self.wrapper_forward(self.inputs)
         output = self.net_forward(inputs)
-        # if isinstance(output, list):
-        #     if self.dim is None:
-        #         output = torch.stack(output, dim=0)
-        #     else:
-        #         output = torch.stack(output, dim=self.dim)
         output_dim = list(output.shape)
         return output_dim
-
