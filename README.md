@@ -37,8 +37,6 @@ def two(x):
     return 2 * x
 
 input = torch.tensor((5, 2), dtype=torch.float64)
-output = two(input)
-print(output)
 
 # Using torch.func.jacrev
 j = jacrev(two, argnums=0)(input)
