@@ -9,7 +9,7 @@ from jacrev_finite import JacrevFinite
 ```
 ## Usage
 ### Class definition
-JacrevFinite class definition can be found in the jacrev_finite.py file
+JacrevFinite class definition can be found in the [jacrev_finite.py](https://github.com/schrodingerslemur/jacrev_finite/blob/main/JacrevFinite.py) file
 #### Parameters
 JacrevFinite(network=, wrapper=None, dim=None, num_args, delta=1e-5)(input<sub>0</sub>)
 - network: Callable function which takes in input<sub>1</sub> and returns an output
