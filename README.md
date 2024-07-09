@@ -18,6 +18,9 @@ JacrevFinite(network=, wrapper=None, dim=None, num_args, delta=1e-5)(input<sub>0
 - num_args: Specifies over which input<sub>0</sub> the output's derivative should be taken with respect to
 - delta: Optional value to change. Default is 1e-5
 
+  ##### Wrapper (optional)
+  E.g. if derivative wants to be taken with respect to q_cur, p_cur, q_cur_7, p_cur_7 but the inputs into the network are q_traj and p_traj, a wrapper can be used to convert q_cur, p_cur, q_cur_7, p_cur_7 into q_traj and p_traj after the delta has been added onto one of the 4 initial inputs.
+
 #### Constraints
 - Input tensors/lists/tuples/ints/floats must have the same number of dimensions (e.g. (1,16,2) and (2,15,1) etc.)
 
