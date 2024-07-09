@@ -77,7 +77,7 @@ class LLUF_class():
         h = self.forward(q_input_list, p_input_list, q_cur)
         return h
     
-    def wrapper(self, input1):
+    def wrapper(self, *args):
         """
         Wrapper function to combine current and trajectory tensors.
 
@@ -87,7 +87,7 @@ class LLUF_class():
         Returns:
             list: A list containing [q_cur, p_cur, q_traj, p_traj].
         """
-        q_cur, p_cur, q_traj_7, p_traj_7 = input1
+        q_cur, p_cur, q_traj_7, p_traj_7 = args
 
         q_traj = torch.cat([q_traj_7, q_cur], dim=0)
         p_traj = torch.cat([p_traj_7, p_cur], dim=0)
