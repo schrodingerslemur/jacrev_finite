@@ -3,7 +3,7 @@
 
 ## Installation
 PyTorch is needed for implementation.
-Download the jacrev_finite.py file and import the JacrevFinite class:
+Download the [jacrev_finite.py](https://github.com/schrodingerslemur/jacrev_finite/blob/main/JacrevFinite.py) file and import the JacrevFinite class:
 ```bash
 from jacrev_finite import JacrevFinite
 ```
@@ -34,7 +34,7 @@ input1 = [2,3]
 
 jacobian = JacrevFinite(network=f, num_args=0)(input, input1)
 ```
-More examples can be found in Example.py
+More examples can be found in [Example.py](https://github.com/schrodingerslemur/jacrev_finite/blob/main/Example.py)
 
 ### Integration with custom class
 Can be found in LLUF folder where LLUF/LLUF_class is custom class with network and wrapper methods defined, and LLUF/main is the code implementation. 
