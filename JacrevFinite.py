@@ -47,8 +47,7 @@ class JacrevFinite:
             self.inputs = list(self.inputs)
 
         else:
-            self.inputs = list(args)
-            self.inputs = [inputs if isinstance(inputs, Tensor) else torch.tensor(inputs) for inputs in self.inputs]
+            self.inputs = [inputs if isinstance(inputs, Tensor) else torch.tensor(inputs, dtype=torch.float64) for inputs in args]
     
         self.n_inputs = len(args)
         self.output_dim = self.get_outputdim()
@@ -81,12 +80,12 @@ class JacrevFinite:
         num_rep = tensor.view(-1).size(0) # Number of repetitions
         num_dim = tensor.dim()
 
-        # Reshape_dim (move dim to last value and multiply by batch size)
+        # Reshape_dim (move dim to last value and multiply by appended size) e.g. for [1,16,2], dim=2, num_rep=3, reshape_dim = [16,2,3]
         reshape_dim = list(tensor.shape)
         reshape_dim.pop(dim)
         reshape_dim.insert(len(reshape_dim), num_rep)
 
-        # Permute_dim
+        # Permute_dim (change order of dimensions to move dim to last value) e.g. for [0,1,2,3,4] and dim=2, permute_list = [0,1,4,2,3]
         permute_list = range(num_dim)
         permute_list = [num if num<dim else num-1 for num in permute_list]
         permute_list[dim] = num_dim-1
@@ -154,10 +153,8 @@ class JacrevFinite:
         Returns:
             torch.Tensor: The output of the network.
         """
-        if not isinstance(input2, Tensor):
-            output = self.network(*input2)
-        else:
-            output = self.network(input2)
+        # Only for get_outputdim method
+        output = self.network(*input2)
         return output
     
     def jacobian_forward(self, output):
@@ -182,8 +179,8 @@ class JacrevFinite:
         jacobian = torch.empty(jacobian_shape, dtype=output.dtype, device=output.device)
 
         # Compute the Jacobian using finite differences
-        for i in range(self.batch_size-1):
-            jacobian[i] = (output[i+1] - output[0]) / self.delta
+        ref = output[0]
+        jacobian = (output[1:] - ref) / self.delta
 
         # Reshape and permute the Jacobian to the desired shape
         jacobian = jacobian.reshape(jacobian_init)
