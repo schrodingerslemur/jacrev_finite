@@ -35,6 +35,9 @@ input2 = [2,3]
 
 jacobian = JacrevFinite(network=f, num_args=0)(input1, input2)
 ```
+More examples can be found in [Example.py](https://github.com/schrodingerslemur/jacrev_finite/blob/main/Example.py)
+
+### Integration with custom class
 ```bash
 class neural_net():
 ...
@@ -49,9 +52,5 @@ input3 = torch.randn(2,3)
 network = neural_net()
 jacobian = JacrevFinite(network = network.forward, num_args=0)(input1, input2, input3)
 ```
-
-More examples can be found in [Example.py](https://github.com/schrodingerslemur/jacrev_finite/blob/main/Example.py)
-
-### Integration with custom class
-Can be found in [LLUF](https://github.com/schrodingerslemur/jacrev_finite/tree/main/LLUF) folder where [LLUF_class](https://github.com/schrodingerslemur/jacrev_finite/tree/main/LLUF/LLUF_class.py) is custom class with network and wrapper methods defined, and [main](https://github.com/schrodingerslemur/jacrev_finite/tree/main/LLUF/main.py) is the code implementation. 
+Better example found in [LLUF](https://github.com/schrodingerslemur/jacrev_finite/tree/main/LLUF) folder where [LLUF_class](https://github.com/schrodingerslemur/jacrev_finite/tree/main/LLUF/LLUF_class.py) is custom class with network and wrapper methods defined, and [main](https://github.com/schrodingerslemur/jacrev_finite/tree/main/LLUF/main.py) is the code implementation. 
 
