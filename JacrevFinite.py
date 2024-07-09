@@ -48,6 +48,10 @@ class JacrevFinite:
 
         else:
             self.inputs = [inputs if isinstance(inputs, Tensor) else torch.tensor(inputs, dtype=torch.float64) for inputs in args]
+
+        first_dim = self.inputs[0].dim()
+        for tensor in self.inputs:
+            assert tensor.dim() == first_dim, f"Tensor {tensor} has a different number of dimensions: {tensor.dim()} vs {first_dim}"
     
         self.n_inputs = len(args)
         self.output_dim = self.get_outputdim()
@@ -140,7 +144,7 @@ class JacrevFinite:
         if self.wrapper is None:
             input2 = input1
         else:
-            input2 = self.wrapper(input1)
+            input2 = self.wrapper(*input1)
         return input2
     
     def net_forward(self, input2):
