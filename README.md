@@ -23,6 +23,7 @@ from jacrev_finite import JacrevFinite
 
 #### Constraints
 - Input tensors/lists/tuples/ints/floats must have the same number of dimensions (e.g. (1,16,2) and (2,15,1) etc.)
+- Network should only have one output
 
 ### Example usage
 ```bash
