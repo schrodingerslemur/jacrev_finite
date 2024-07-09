@@ -22,23 +22,16 @@ class LLUF_class():
         self.prepare_p = self.prep_net.prepare_p_feature_input
         self.forward = self.LLUF_net.LLUF_update_p1st
     
-    def network(self, *args):
+    def network(self, q_cur, p_cur, q_traj, p_traj):
         """
         Forward pass through the network.
 
         Args:
-            *args: Either a single argument which is a tuple containing (q_cur, p_cur, q_traj, p_traj),
-                   or four separate arguments (q_cur, p_cur, q_traj, p_traj).
+            q_cur, p_cur, q_traj, p_traj
 
         Returns:
             torch.Tensor: The output of the forward pass.
         """
-        assert len(args) == 1 or len(args) == 4, 'Invalid number of arguments'
-        if len(args) == 1:
-            q_cur, p_cur, q_traj, p_traj = args[0]
-        else:
-            q_cur, p_cur, q_traj, p_traj = args
-
         # Squeeze the batch dimension from current position tensors
         q_cur = q_cur.squeeze(0)
         p_cur = p_cur.squeeze(0)
@@ -77,18 +70,16 @@ class LLUF_class():
         h = self.forward(q_input_list, p_input_list, q_cur)
         return h
     
-    def wrapper(self, *args):
+    def wrapper(self, q_cur, p_cur, q_traj_7, p_traj_7):
         """
         Wrapper function to combine current and trajectory tensors.
 
         Args:
-            input1 (list): A list containing [q_cur, p_cur, q_traj_7, p_traj_7].
+            q_cur, p_cur, q_traj_7, p_traj_7
 
         Returns:
             list: A list containing [q_cur, p_cur, q_traj, p_traj].
         """
-        q_cur, p_cur, q_traj_7, p_traj_7 = args
-
         q_traj = torch.cat([q_traj_7, q_cur], dim=0)
         p_traj = torch.cat([p_traj_7, p_cur], dim=0)
         
