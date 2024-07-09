@@ -11,7 +11,7 @@ from jacrev_finite import JacrevFinite
 ### Class definition
 `JacrevFinite` class definition can be found in the [jacrev_finite.py](https://github.com/schrodingerslemur/jacrev_finite/blob/main/JacrevFinite.py) file
 #### Parameters
-`JacrevFinite(network=, wrapper=None, dim=None, num_args, delta=1e-5)(input<sub>0</sub>)`
+`JacrevFinite(network=, wrapper=None, dim=None, num_args, delta=1e-5)(input0)`
 - network: Callable function which takes in input<sub>1</sub> and returns an output
 - wrapper: Optional function which takes in input<sub>0</sub> and returns input<sub>1</sub>. If not specified, input<sub>1</sub> is input<sub>0</sub>
 - dim: Singleton dimensions over which to append delta tensors to. If not specified, singleton dimension is added at index 0.
