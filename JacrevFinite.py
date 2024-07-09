@@ -1,137 +1,210 @@
 import torch
+from torch import Tensor
 
-class LLUF_jacrev():
-    """
-    Class to perform Jacobian computations using a given network and wrapper functions.
-    Necessary methods for JacrevFinite implementation:
-    - self.wrapper: Wrapper function to convert input1(s) to input2(s) (combine current and trajectory tensors).
-    - self.network: Forward pass through the network taking in input2(s)
-
-    Args:
-        networks (list): A list containing the network components. It should contain:
-                         - prep_net: A network for preparing the data.
-                         - LLUF_net: A network for updating the data.
-                         - l_init: Initial values for the network.
-    """
-
-    def __init__(self, networks):
-        self.prep_net = networks[0]
-        self.LLUF_net = networks[1]
-        self.l_init = networks[2]
-        self.prepare_q = self.prep_net.prepare_q_feature_input
-        self.prepare_p = self.prep_net.prepare_p_feature_input
-        self.forward = self.LLUF_net.LLUF_update_p1st
-    
-    def network(self, q_cur, p_cur, q_traj, p_traj):
+class JacrevFinite:
+    def __init__(self, *, network, num_args, wrapper=None, dim=None, delta=1e-5):
         """
-        Forward pass through the network.
+        Initialize the JacrevFinite object.
 
         Args:
-            q_cur, p_cur, q_traj, p_traj
+            network (callable): The network function that takes input2 to output.
+            wrapper (callable, optional): A function that takes input1 (with delta added) to input2. Defaults to None.
+            output_dim (list or tuple): The dimensions of the network output.
+            dim (int, optional): The dimension to append the batch over. Defaults to None.
+            num_args (int): The index of the argument in the input list to which the delta is added.
 
-        Returns:
-            torch.Tensor: The output of the forward pass.
+        Raises:
+            AssertionError: If num_args is not an int.
+            AssertionError: If dim is not an int or None.
         """
-        # Squeeze the batch dimension from current position tensors
-        q_cur = q_cur.squeeze(0)
-        p_cur = p_cur.squeeze(0)
-
-        # Initialize empty tensors for input features
-        q_input = torch.empty((8, 0, 16, 12), dtype=torch.float64, device='cuda')
-        p_input = torch.empty((8, 0, 16, 12), dtype=torch.float64, device='cuda')
-
-        batch_size = q_traj.size(1)
-
-        # Process each batch
-        for i in range(batch_size):
-            q_traj_batch = q_traj[:, i, :, :].unsqueeze(1)
-            p_traj_batch = p_traj[:, i, :, :].unsqueeze(1)
-
-            q_traj_batch_list = list(q_traj_batch)
-            p_traj_batch_list = list(p_traj_batch)
-
-            q_input_list, p_input_list = [], []
-
-            # Prepare q and p features
-            for q, p in zip(q_traj_batch_list, p_traj_batch_list):
-                q_input_list.append(self.prepare_q(q, self.l_init))
-                p_input_list.append(self.prepare_p(q, p, self.l_init))
-
-            q_input_tensor = torch.cat(q_input_list, dim=0).unsqueeze(1)
-            p_input_tensor = torch.cat(p_input_list, dim=0).unsqueeze(1)
-
-            q_input = torch.cat((q_input, q_input_tensor), dim=1)
-            p_input = torch.cat((p_input, p_input_tensor), dim=1)
-        
-        q_input_list = list(q_input)
-        p_input_list = list(p_input)
-
-        # Perform the forward pass
-        h = self.forward(q_input_list, p_input_list, q_cur)
-        return h
+        assert isinstance(num_args, int), 'num_args must be int'
+        assert isinstance(dim, int) or dim is None, 'dim must be int or None'
     
-    def wrapper(self, q_cur, p_cur, q_traj_7, p_traj_7):
+        self.network = network
+        self.wrapper = wrapper
+        self.num_args = num_args
+        self.delta = delta
+        self.dim = dim
+
+    def __call__(self, *args):
         """
-        Wrapper function to combine current and trajectory tensors.
+        Performs computation.
 
         Args:
-            q_cur, p_cur, q_traj_7, p_traj_7
+            *args: The input arguments.
 
         Returns:
-            list: A list containing [q_cur, p_cur, q_traj, p_traj].
+            torch.Tensor: The computed Jacobian matrix.
         """
-        q_traj = torch.cat([q_traj_7, q_cur], dim=0)
-        p_traj = torch.cat([p_traj_7, p_cur], dim=0)
+        assert self.num_args < len(args), 'invalid num_args'
+
+        # Converts inputs to a list of tensors
+        if len(args) == 1:
+            self.inputs = args[0]
+            if not isinstance(self.inputs, Tensor):
+                self.inputs = torch.tensor(self.inputs)
+            self.inputs = self.inputs.unsqueeze(0)
+            self.inputs = list(self.inputs)
+
+        else:
+            self.inputs = [inputs if isinstance(inputs, Tensor) else torch.tensor(inputs, dtype=torch.float64) for inputs in args]
+
+        first_dim = self.inputs[0].dim()
+        for tensor in self.inputs:
+            assert tensor.dim() == first_dim, f"Tensor {tensor} has a different number of dimensions: {tensor.dim()} vs {first_dim}"
+    
+        self.n_inputs = len(args)
+        self.output_dim = self.get_outputdim()
         
-        input2 = [q_cur, p_cur, q_traj, p_traj]
+        # Forward passes
+        input1 = self.delta_forward() # changes self.inputs
+        input2 = self.wrapper_forward(input1)
+        output = self.net_forward(input2)
+        jacobian = self.jacobian_forward(output)
+
+        return jacobian
+    
+    def delta_forward(self):
+        """
+        Adds delta to the input tensor and appends over specified dimension to create batch tensor.
+
+        Returns:
+            list: The list of new inputs with the batch tensor included.
+        """
+        tensor = self.inputs[self.num_args]
+        
+        if self.dim is None:
+            tensor = tensor.clone().unsqueeze(0)  # Add new singleton dimension
+            dim = 0  # The dimension along which to concatenate
+        else:
+            dim = self.dim  # Use the specified dimension
+
+        assert tensor.size(dim) == 1, 'wrong dimension to add batch to, size must = 1'
+
+        num_rep = tensor.view(-1).size(0) # Number of repetitions
+        num_dim = tensor.dim()
+
+        # Reshape_dim (move dim to last value and multiply by appended size) e.g. for [1,16,2], dim=2, num_rep=3, reshape_dim = [16,2,3]
+        reshape_dim = list(tensor.shape)
+        reshape_dim.pop(dim)
+        reshape_dim.insert(len(reshape_dim), num_rep)
+
+        # Permute_dim (change order of dimensions to move dim to last value) e.g. for [0,1,2,3,4] and dim=2, permute_list = [0,1,4,2,3]
+        permute_list = range(num_dim)
+        permute_list = [num if num<dim else num-1 for num in permute_list]
+        permute_list[dim] = num_dim-1
+
+        # Add delta onto every element through repeating tensors and adding identity matrix multiplied by delta
+        repeated_tensor = tensor.view(-1).unsqueeze(0).repeat(num_rep, 1)
+        delta_tensor = torch.eye(num_rep, dtype =tensor.dtype, device=tensor.device)*self.delta
+        append_tensor = repeated_tensor + delta_tensor
+
+        # Restructure tensor 
+        append_tensor = torch.t(append_tensor)
+        append_tensor = append_tensor.reshape(reshape_dim).permute(permute_list)
+
+        # Concatenate with original tensor
+        batch_tensor = torch.cat((tensor, append_tensor), dim=dim)
+
+        self.batch_size = batch_tensor.size(dim)
+
+        # Replace original tensor with batch_tensor
+        inputs_copy = self.inputs.copy()
+        inputs_copy.pop(self.num_args)
+
+        new_inputs = []
+
+        # Make all tensors have the same batch size
+        for input_tensor in inputs_copy:
+            input_tensor = input_tensor.clone()
+            
+            if self.dim is None:
+                input_tensor = input_tensor.unsqueeze(0)
+
+            repeat_shape = [1] * input_tensor.dim()
+            repeat_shape[dim] = self.batch_size
+            repeated_tensor = input_tensor.repeat(*repeat_shape)
+
+            new_inputs.append(repeated_tensor)
+
+        new_inputs.insert(self.num_args, batch_tensor)
+
+        return new_inputs
+    
+    def wrapper_forward(self, input1):
+        """
+        Apply the wrapper function to input1.
+
+        Args:
+            input1 (list): The input list.
+
+        Returns:
+            list/tuple/iterable: The output after applying the wrapper.
+        """
+        if self.wrapper is None:
+            input2 = input1
+        else:
+            # Passed in as *args, not as a list. self.wrapper can be defined as wrapper(self, input0, input1, ...)
+            input2 = self.wrapper(*input1)
+            
         return input2
     
-    def full_forward(self, q_cur, p_cur, q_traj_7, p_traj_7):
+    def net_forward(self, input2):
         """
-        Full forward pass through the network including data preparation. For jacrev implementation.
+        Apply the network function to input2.
 
         Args:
-            q_cur (torch.Tensor): Current q positions.
-            p_cur (torch.Tensor): Current p positions.
-            q_traj_7 (torch.Tensor): Trajectory q positions.
-            p_traj_7 (torch.Tensor): Trajectory p positions.
+            input2 (list/tuple/iterable): The input list after wrapping.
 
         Returns:
-            torch.Tensor: The output of the forward pass.
+            torch.Tensor: The output of the network.
         """
-        q_traj = torch.cat([q_traj_7, q_cur], dim=0)
-        p_traj = torch.cat([p_traj_7, p_cur], dim=0)
- 
-        q_traj_list = list(q_traj)
-        p_traj_list = list(p_traj)
-
-        q_cur = q_traj_list[-1]
-        p_cur = p_traj_list[-1]
-
-        q_input_list = []
-        p_input_list = []
-
-        # Prepare q and p features
-        for q, p in zip(q_traj_list, p_traj_list):
-            q_input_list.append(self.prepare_q(q, self.l_init))
-            p_input_list.append(self.prepare_p(q, p, self.l_init))
-
-        # Perform the forward pass
-        h_p1st = self.LLUF_net.LLUF_update_p1st(q_input_list, p_input_list, q_cur)
-        return h_p1st
+        # Passed in as *args, not as a list. self.network can be defined as network(self, input0, input1, ...)
+        output = self.network(*input2)
+        return output
     
-    def preprocess(self, q_traj, p_traj):
+    def jacobian_forward(self, output):
         """
-        Preprocess the trajectory tensors.
+        Computes the Jacobian matrix.
 
         Args:
-            q_traj (torch.Tensor): Trajectory q positions.
-            p_traj (torch.Tensor): Trajectory p positions.
+            output (torch.Tensor): The network output.
 
         Returns:
-            tuple: A tuple containing (q_cur, p_cur, q_traj_7, p_traj_7).
+            torch.Tensor: The computed Jacobian matrix.
         """
-        q_traj_7, q_cur = q_traj[:7], q_traj[7].unsqueeze(0)
-        p_traj_7, p_cur = p_traj[:7], p_traj[7].unsqueeze(0)
-        
-        return q_cur, p_cur, q_traj_7, p_traj_7
+        # Compute values for reshape and permutation
+        input_delta_shape = list(self.inputs[self.num_args].shape)
+        output_shape = self.output_dim
+        jacobian_init = input_delta_shape + output_shape
+
+        input_len = len(input_delta_shape)
+        output_len = len(output_shape)
+
+        # Initialize the Jacobian with the correct shape
+        jacobian_shape = [self.batch_size - 1] + output_shape
+        jacobian = torch.empty(jacobian_shape, dtype=output.dtype, device=output.device)
+
+        # Compute the Jacobian using finite differences
+        ref = output[0]
+        jacobian = (output[1:] - ref) / self.delta
+
+        # Reshape and permute the Jacobian to the desired shape
+        jacobian = jacobian.reshape(jacobian_init)
+        permute_order = list(range(input_len, input_len + output_len)) + list(range(input_len))
+        jacobian = jacobian.permute(*permute_order)
+
+        return jacobian
+    
+    def get_outputdim(self):
+        """
+        Gets output dimensions for a single batch.
+
+        Returns:
+            list: The output dimensions.
+        """
+        inputs = self.wrapper_forward(self.inputs)
+        output = self.net_forward(inputs)
+        output_dim = list(output.shape)
+
+        return output_dim
