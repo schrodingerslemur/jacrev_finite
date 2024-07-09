@@ -30,11 +30,26 @@ from jacrev_finite import JacrevFinite
 def f(x,y):
     return x+y
 
-input = (1,1)
-input1 = [2,3]
+input1 = (1,1)
+input2 = [2,3]
 
-jacobian = JacrevFinite(network=f, num_args=0)(input, input1)
+jacobian = JacrevFinite(network=f, num_args=0)(input1, input2)
 ```
+```bash
+class neural_net():
+...
+    def forward(self, x, y, z):
+        ...
+        return output
+
+input1 = torch.randn(2,3)
+input2 = torch.randn(2,3)
+input3 = torch.randn(2,3)
+
+network = neural_net()
+jacobian = JacrevFinite(network = network.forward, num_args=0)(input1, input2, input3)
+```
+
 More examples can be found in [Example.py](https://github.com/schrodingerslemur/jacrev_finite/blob/main/Example.py)
 
 ### Integration with custom class
