@@ -89,10 +89,10 @@ class JacrevFinite:
         reshape_dim.pop(dim)
         reshape_dim.insert(len(reshape_dim), num_rep)
 
-        # Permute_dim (change order of dimensions to move dim to last value) e.g. for [0,1,2,3,4] and dim=2, permute_list = [0,1,4,2,3]
-        permute_list = range(num_dim)
-        permute_list = [num if num<dim else num-1 for num in permute_list]
-        permute_list[dim] = num_dim-1
+        # Permute_dim (change order of dimensions to move dim to last value) e.g. for [0,1,2,3,4] and dim=2, permute_dim = [0,1,4,2,3]
+        permute_dim = range(num_dim)
+        permute_dim = [num if num<dim else num-1 for num in permute_dim]
+        permute_dim[dim] = num_dim-1
 
         # Add delta onto every element through repeating tensors and adding identity matrix multiplied by delta
         repeated_tensor = tensor.view(-1).unsqueeze(0).repeat(num_rep, 1)
@@ -101,7 +101,7 @@ class JacrevFinite:
 
         # Restructure tensor 
         append_tensor = torch.t(append_tensor)
-        append_tensor = append_tensor.reshape(reshape_dim).permute(permute_list)
+        append_tensor = append_tensor.reshape(reshape_dim).permute(permute_dim)
 
         # Concatenate with original tensor
         batch_tensor = torch.cat((tensor, append_tensor), dim=dim)
