@@ -95,18 +95,19 @@ class JacrevFinite:
         permute_dim[dim] = num_dim-1 
 
         # Operations to add delta onto every single element: ---------------------
+        
         # Repeat tensor for num_rep rows to obtain square matrix (num_rep rows x num_rep columns)
         repeated_tensor = tensor.view(-1).unsqueeze(0).repeat(num_rep, 1)       # (32,32)
+        
         # Create identity matrix of size (num_rep x num_rep) multiplied by delta
         delta_tensor = torch.eye(num_rep, dtype =tensor.dtype, device=tensor.device)*self.delta     # (32,32)*delta
+       
         # Add the two tensors together
         append_tensor = repeated_tensor + delta_tensor      # (32,32) + (32,32)
       
-
         # Restructure tensor 
         append_tensor = torch.t(append_tensor)      # Transpose
         append_tensor = append_tensor.reshape(reshape_dim).permute(permute_dim)     # (32,32) --> (16,2,32) --> (32,16,2)
-
 
         # Concatenate with original tensor
         batch_tensor = torch.cat((tensor, append_tensor), dim=dim)  # (33,16,2)
