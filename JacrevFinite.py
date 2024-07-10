@@ -81,32 +81,37 @@ class JacrevFinite:
 
         assert tensor.size(dim) == 1, 'wrong dimension to add batch to, size must = 1'
 
-        num_rep = tensor.view(-1).size(0) # Number of repetitions
-        num_dim = tensor.dim()
+        num_rep = tensor.view(-1).size(0) # Number of repetitions (32)
+        num_dim = tensor.dim() # (3)
 
-        # Reshape_dim (move dim to last value and multiply by appended size) e.g. for [1,16,2], dim=2, num_rep=3, reshape_dim = [16,2,3]
+        # Reshape_dim (move dim to last value and multiply by appended size) e.g. (1,16,2) --> (16,2,32) - 1 is moved to last position and multiplied by 32
         reshape_dim = list(tensor.shape)
         reshape_dim.pop(dim)
         reshape_dim.insert(len(reshape_dim), num_rep)
 
-        # Permute_dim (change order of dimensions to move dim to last value) e.g. for [0,1,2,3,4] and dim=2, permute_dim = [0,1,4,2,3]
+        # Permute_dim (change order of dimensions to move dim to last value) e.g. (0,1,2) --> (1,2,0) - to reshape (16,2,32) back to (32,16,2)
         permute_dim = range(num_dim)
         permute_dim = [num if num<dim else num-1 for num in permute_dim]
-        permute_dim[dim] = num_dim-1
+        permute_dim[dim] = num_dim-1 
 
-        # Add delta onto every element through repeating tensors and adding identity matrix multiplied by delta
-        repeated_tensor = tensor.view(-1).unsqueeze(0).repeat(num_rep, 1)
-        delta_tensor = torch.eye(num_rep, dtype =tensor.dtype, device=tensor.device)*self.delta
-        append_tensor = repeated_tensor + delta_tensor
+        # Operations to add delta onto every single element: ---------------------
+        # Repeat tensor for num_rep rows to obtain square matrix (num_rep rows x num_rep columns)
+        repeated_tensor = tensor.view(-1).unsqueeze(0).repeat(num_rep, 1)       # (32,32)
+        # Create identity matrix of size (num_rep x num_rep) multiplied by delta
+        delta_tensor = torch.eye(num_rep, dtype =tensor.dtype, device=tensor.device)*self.delta     # (32,32)*delta
+        # Add the two tensors together
+        append_tensor = repeated_tensor + delta_tensor      # (32,32) + (32,32)
+      
 
         # Restructure tensor 
-        append_tensor = torch.t(append_tensor)
-        append_tensor = append_tensor.reshape(reshape_dim).permute(permute_dim)
+        append_tensor = torch.t(append_tensor)      # Transpose
+        append_tensor = append_tensor.reshape(reshape_dim).permute(permute_dim)     # (32,32) --> (16,2,32) --> (32,16,2)
+
 
         # Concatenate with original tensor
-        batch_tensor = torch.cat((tensor, append_tensor), dim=dim)
+        batch_tensor = torch.cat((tensor, append_tensor), dim=dim)  # (33,16,2)
 
-        self.batch_size = batch_tensor.size(dim)
+        self.batch_size = batch_tensor.size(dim) # (33)
 
         # Replace original tensor with batch_tensor
         inputs_copy = self.inputs.copy()
