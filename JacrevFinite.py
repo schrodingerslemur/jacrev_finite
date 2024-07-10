@@ -7,11 +7,14 @@ class JacrevFinite:
         Initialize the JacrevFinite object.
 
         Args:
-            network (callable): The network function that takes input2 to output.
-            wrapper (callable, optional): A function that takes input1 (with delta added) to input2. Defaults to None.
-            output_dim (list or tuple): The dimensions of the network output.
-            dim (int, optional): The dimension to append the batch over. Defaults to None.
-            num_args (int): The index of the argument in the input list to which the delta is added.
+            network (callable): Network function that takes input2 to output.
+            wrapper (callable, optional): Function that takes input1 (with delta added) to input2. Defaults to None.
+            dim (int, optional): The dimension to append the batch over. Defaults to None. Must be a singleton dimension.
+                E.g. for (8,1,16,2) --> dim can be 1 
+            num_args (int): Argument index over which to get Jacobian matrix with respect to.
+
+        Constraints:
+            Inputs must have the same number of dimensions (.dim() must be equal); add singleton dimensions if necessary
 
         Raises:
             AssertionError: If num_args is not an int.
@@ -31,10 +34,10 @@ class JacrevFinite:
         Performs computation.
 
         Args:
-            *args: The input arguments.
+            *args: Input arguments.
 
         Returns:
-            torch.Tensor: The computed Jacobian matrix.
+            Tensor: Computed Jacobian matrix.
         """
         assert self.num_args < len(args), 'invalid num_args'
 
@@ -66,10 +69,10 @@ class JacrevFinite:
     
     def delta_forward(self):
         """
-        Adds delta to the input tensor and appends over specified dimension to create batch tensor.
+        Creates batch tensor by repeating input tensors and adding delta to 1 element per repeated tensor.
 
         Returns:
-            list: The list of new inputs with the batch tensor included.
+            list: List of new inputs with the batch tensor included.
         """
         tensor = self.inputs[self.num_args]
         
@@ -142,10 +145,10 @@ class JacrevFinite:
         Apply the wrapper function to input1.
 
         Args:
-            input1 (list): The input list.
+            input1 (list): Input list from delta_forward.
 
         Returns:
-            list/tuple/iterable: The output after applying the wrapper.
+            list/tuple/iterable: Output after applying the wrapper.
         """
         if self.wrapper is None:
             input2 = input1
@@ -160,10 +163,10 @@ class JacrevFinite:
         Apply the network function to input2.
 
         Args:
-            input2 (list/tuple/iterable): The input list after wrapping.
+            input2 (list/tuple/iterable): Input list from wrapper_forward.
 
         Returns:
-            torch.Tensor: The output of the network.
+            Tensor: Output of the network.
         """
         # Passed in as *args, not as a list. self.network can be defined as network(self, input0, input1, ...)
         output = self.network(*input2)
@@ -174,10 +177,10 @@ class JacrevFinite:
         Computes the Jacobian matrix.
 
         Args:
-            output (torch.Tensor): The network output.
+            output (Tensor): Output from net_forward.
 
         Returns:
-            torch.Tensor: The computed Jacobian matrix.
+            Tensor: Computed Jacobian matrix.
         """
         # Compute values for reshape and permutation
         input_delta_shape = list(self.inputs[self.num_args].shape)
@@ -205,6 +208,7 @@ class JacrevFinite:
     def get_outputdim(self):
         """
         Gets output dimensions for a single batch.
+        Used to determine dimensions of Jacobian matrix
 
         Returns:
             list: The output dimensions.
