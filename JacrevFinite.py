@@ -4,7 +4,7 @@ from torch import Tensor
 class JacrevFinite:
     def __init__(self, *, network, num_args, wrapper=None, dim=None, delta=1e-5):
         """
-        Initialize the JacrevFinite object.
+        Initialize JacrevFinite object.
 
         Args:
             network (callable): Network function that takes input2 to output.
@@ -87,37 +87,38 @@ class JacrevFinite:
         num_rep = tensor.view(-1).size(0) # Number of repetitions (32)
         num_dim = tensor.dim() # (3)
 
-        # Reshape_dim (move dim to last value and multiply by appended size) e.g. (1,16,2) --> (16,2,32) - 1 is moved to last position and multiplied by 32
+        # Repeat_dim (num_rep times over dim)
+        repeat_dim = torch.ones(num_dim, dtype=int).tolist()
+        repeat_dim[dim] = num_rep
+
+        # Reshape_dim (move dim to last value and multiply by appended size) 
         reshape_dim = list(tensor.shape)
         reshape_dim.pop(dim)
         reshape_dim.insert(len(reshape_dim), num_rep)
 
-        # Permute_dim (change order of dimensions to move dim to last value) e.g. (0,1,2) --> (1,2,0) - to reshape (16,2,32) back to (32,16,2)
+        # Permute_dim (change order of dimensions to move dim to last value) 
         permute_dim = range(num_dim)
         permute_dim = [num if num<dim else num-1 for num in permute_dim]
         permute_dim[dim] = num_dim-1 
 
         # Operations to add delta onto every single element: ---------------------
-        
-        # Repeat tensor for num_rep rows to obtain square matrix (num_rep rows x num_rep columns)
-        repeated_tensor = tensor.view(-1).unsqueeze(0).repeat(num_rep, 1)       # (32,32)
-        
-        # Create identity matrix of size (num_rep x num_rep) multiplied by delta
-        delta_tensor = torch.eye(num_rep, dtype =tensor.dtype, device=tensor.device)*self.delta     # (32,32)*delta
-       
+
+        # Repeat tensor num_rep times over dim
+        repeated_tensor = tensor.repeat(repeat_dim)     
+
+        # Create identity matrix of size (num_rep x num_rep) multiplied by delta then reshape to fit repeated_tensor
+        delta_tensor = torch.eye(num_rep, dtype =tensor.dtype, device=tensor.device)*self.delta   
+        delta_tensor = delta_tensor.reshape(reshape_dim).permute(permute_dim)
+
         # Add the two tensors together
-        append_tensor = repeated_tensor + delta_tensor      # (32,32) + (32,32)
-      
-        # Restructure tensor 
-        append_tensor = torch.t(append_tensor)      # Transpose
-        append_tensor = append_tensor.reshape(reshape_dim).permute(permute_dim)     # (32,32) --> (16,2,32) --> (32,16,2)
+        append_tensor = repeated_tensor + delta_tensor    
 
         # Concatenate with original tensor
-        batch_tensor = torch.cat((tensor, append_tensor), dim=dim)  # (33,16,2)
+        batch_tensor = torch.cat((tensor, append_tensor), dim=dim)  
 
-        self.batch_size = batch_tensor.size(dim) # (33)
+        self.batch_size = batch_tensor.size(dim)
 
-        # Replace original tensor with batch_tensor
+        # Replace original tensor with batch_tensor: -----------------------------
         inputs_copy = self.inputs.copy()
         inputs_copy.pop(self.num_args)
 
