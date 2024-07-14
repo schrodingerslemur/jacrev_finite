@@ -11,6 +11,7 @@ class JacrevFinite:
             wrapper (callable, optional): Function that takes input1 (with delta added) to input2. Defaults to None.
             dim (int, optional): The dimension to append the batch over. Defaults to None. Must be a singleton dimension.
                 E.g. for (8,1,16,2) --> dim can be 1 
+                Ensure network can handle multiple batches over that dimension
             num_args (int): Argument index over which to get Jacobian matrix with respect to.
 
         Constraints:
@@ -52,6 +53,7 @@ class JacrevFinite:
         else:
             self.inputs = [inputs if isinstance(inputs, Tensor) else torch.tensor(inputs, dtype=torch.float64) for inputs in args]
 
+        # Ensure all tensors have the same number of dimensions (TRY TO FIX THIS)
         first_dim = self.inputs[0].dim()
         for tensor in self.inputs:
             assert tensor.dim() == first_dim, f"Tensor {tensor} has a different number of dimensions: {tensor.dim()} vs {first_dim}"
@@ -106,7 +108,7 @@ class JacrevFinite:
         # Repeat tensor num_rep times over dim
         repeated_tensor = tensor.repeat(repeat_dim)     
 
-        # Create identity matrix of size (num_rep x num_rep) multiplied by delta then reshape to fit repeated_tensor
+        # Create identity matrix of size (num_rep x num_rep) multiplied by delta then reshape and permute to fit repeated_tensor
         delta_tensor = torch.eye(num_rep, dtype =tensor.dtype, device=tensor.device)*self.delta   
         delta_tensor = delta_tensor.reshape(reshape_dim).permute(permute_dim)
 
