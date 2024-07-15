@@ -35,6 +35,25 @@ input2 = [2,3]
 
 jacobian = JacrevFinite(network=f, num_args=0)(input1, input2)
 ```
+
+### Example usage with wrapper
+```bash
+def f(x,y):
+    return x+y
+
+seq1a = [1,2,3,4]
+seq1b = [5,6,7,8]
+
+seq2a = [-1,-2,-3,-4]
+seq2b = [-5,-6,-7,-8]
+
+def wrapper(seq1a, seq1b, seq2a, seq2b):
+    seq1 = seq1a + seq1b # Concatenate
+    seq2 = seq2a + seq2b
+    return [seq1, seq2]
+
+jacobian = JacrevFinite(network=f, wrapper=wrapper, num_args=0)(seq1a, seq1b, seq2a, seq2b)
+```
 More examples can be found in [Example.py](https://github.com/schrodingerslemur/jacrev_finite/blob/main/Example.py)
 
 ### Integration with custom class
