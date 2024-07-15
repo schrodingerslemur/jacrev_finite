@@ -1,4 +1,6 @@
-# jacrev_finite
+# JacrevFinite
+```bash
+JacrevFinite*(\*, network, num_args, wrapper=None, dim=None, override_dim_constraint=False, delta=1e-5)*
 `JacrevFinite` is a Python class designed to compute the Jacobian matrix of a given network function using finite differences as a replacement to `torch.func.jacrev`
 
 ## Installation
