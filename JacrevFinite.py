@@ -2,7 +2,7 @@ import torch
 from torch import Tensor
 
 class JacrevFinite:
-    def __init__(self, *, network, num_args, wrapper=None, dim=None, delta=1e-5):
+    def __init__(self, *, network, num_args, wrapper=None, dim=None, delta=1e-5, override_dim_constraint=False):
         """
         Initialize JacrevFinite object.
 
@@ -30,6 +30,8 @@ class JacrevFinite:
         self.delta = delta
         self.dim = dim
 
+        self.override = override_dim_constraint
+
     def __call__(self, *args):
         """
         Performs computation.
@@ -38,7 +40,7 @@ class JacrevFinite:
             *args: Input arguments.
 
         Returns:
-            Tensor: Computed Jacobian matrix.
+            Tensor: Jacobian matrix.
         """
         assert self.num_args < len(args), 'invalid num_args'
 
@@ -51,14 +53,15 @@ class JacrevFinite:
             self.inputs = list(self.inputs)
 
         else:
-            self.inputs = [inputs if isinstance(inputs, Tensor) else torch.tensor(inputs, dtype=torch.float64) for inputs in args]
-
-        # Ensure all tensors have the same number of dimensions (TRY TO FIX THIS)
-        first_dim = self.inputs[0].dim()
-        for tensor in self.inputs:
-            assert tensor.dim() == first_dim, f"Tensor {tensor} has a different number of dimensions: {tensor.dim()} vs {first_dim}"
+            self.inputs = [inputs if isinstance(inputs, Tensor) else \
+                           torch.tensor(inputs, dtype=torch.float64) for inputs in args]
+        
+        if self.override is False:
+            first_dim = self.inputs[0].dim()
+            for tensor in self.inputs:
+                assert tensor.dim() == first_dim, f"Tensor {tensor} has a different number of dimensions: \
+                    {tensor.dim()} vs {first_dim}"
     
-        self.n_inputs = len(args)
         self.output_dim = self.get_outputdim()
         
         # Forward passes
@@ -76,6 +79,7 @@ class JacrevFinite:
         Returns:
             list: List of new inputs with the batch tensor included.
         """
+        # Specifies which tensor to append delta over
         tensor = self.inputs[self.num_args]
         
         if self.dim is None:
@@ -84,10 +88,10 @@ class JacrevFinite:
         else:
             dim = self.dim  # Use the specified dimension
 
-        assert tensor.size(dim) == 1, 'wrong dimension to add batch to, size must = 1'
+        assert tensor.size(dim) == 1, 'wrong dimension to append batch over, size must = 1'
 
-        num_rep = tensor.view(-1).size(0) # Number of repetitions (32)
-        num_dim = tensor.dim() # (3)
+        num_rep = tensor.view(-1).size(0) # Number of repetitions 
+        num_dim = tensor.dim() # Number of dimensions in tensor
 
         # Repeat_dim (num_rep times over dim)
         repeat_dim = torch.ones(num_dim, dtype=int).tolist()
@@ -108,7 +112,7 @@ class JacrevFinite:
         # Repeat tensor num_rep times over dim
         repeated_tensor = tensor.repeat(repeat_dim)     
 
-        # Create identity matrix of size (num_rep x num_rep) multiplied by delta then reshape and permute to fit repeated_tensor
+        # Create identity matrix of size (num_rep x num_rep) multiplied by delta then reshape to fit repeated_tensor
         delta_tensor = torch.eye(num_rep, dtype =tensor.dtype, device=tensor.device)*self.delta   
         delta_tensor = delta_tensor.reshape(reshape_dim).permute(permute_dim)
 
