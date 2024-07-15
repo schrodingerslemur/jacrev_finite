@@ -197,10 +197,6 @@ class JacrevFinite:
         input_len = len(input_delta_shape)
         output_len = len(output_shape)
 
-        # Initialize the Jacobian with the correct shape
-        jacobian_shape = [self.batch_size - 1] + output_shape
-        jacobian = torch.empty(jacobian_shape, dtype=output.dtype, device=output.device)
-
         # Compute the Jacobian using finite differences
         ref = output[0]
         jacobian = (output[1:] - ref) / self.delta
