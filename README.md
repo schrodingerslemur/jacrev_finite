@@ -129,7 +129,7 @@ More examples can be found in [Example.py](https://github.com/schrodingerslemur/
 
 ### Integration with custom class
 ```bash
-class neural_net():
+class update():
 ...
     def forward(self, x, y, z):
         ...
@@ -139,7 +139,7 @@ input1 = torch.randn(2,3)
 input2 = torch.randn(2,3)
 input3 = torch.randn(2,3)
 
-function = neural_net()
+function = update()
 jacobian = JacrevFinite(function = function.forward, num_args=0)(input1, input2, input3)
 ```
 Better example found in [LLUF](https://github.com/schrodingerslemur/jacrev_finite/tree/main/EXAMPLE_LLUF) folder where [LLUF_class](https://github.com/schrodingerslemur/jacrev_finite/tree/main/EXAMPLE_LLUF/LLUF_class.py) is custom class with function and wrapper methods defined, and [main](https://github.com/schrodingerslemur/jacrev_finite/tree/main/EXAMPLE_LLUF/main.py) is the code implementation. 
