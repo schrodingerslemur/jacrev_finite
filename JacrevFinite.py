@@ -203,7 +203,6 @@ class JacrevFinite:
         ref = output.select(dim,0)
         output_transposed = output.transpose(0, dim)
         jacobian = (output_transposed[1:] - ref)/self.delta
-        jacobian = jacobian.transpose(0,dim)
 
         # Reshape and permute the Jacobian to the desired shape
         jacobian = jacobian.reshape(jacobian_init)
