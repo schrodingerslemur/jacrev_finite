@@ -26,7 +26,7 @@ Download the [JacrevFinite.py](https://github.com/schrodingerslemur/jacrev_finit
 ```bash
 from JacrevFinite import JacrevFinite
 ```
-Copy and run the following code after downloading JacrevFinite.py file and ensure the output returns `True`. 
+Copy and run the following code after downloading [JacrevFinite.py](https://github.com/schrodingerslemur/jacrev_finite/blob/main/JacrevFinite.py) file and ensure the output returns `True`. 
 *The following code can also be found in [testcases.py](https://github.com/schrodingerslemur/jacrev_finite/edit/main/testcases.py)*
 ```bash
 import torch
