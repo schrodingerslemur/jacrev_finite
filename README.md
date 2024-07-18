@@ -8,7 +8,7 @@ Computes the jacobian of `network` with respect to the *args at index `num_args`
 - network *(function)* - A Python function which takes one or more arguments and returns one tensor (Note: there is a constraint that the network must only have 1 output)
 - num_args *(int)* - Integer which states which arguments to get the Jacobian with respect to.
 - wrapper *(function)* - Optional, takes *args and converts it into inputs for networks. Only used in certain cases. i.e. if Jacobian is taken with respect to tensor1 and tensor2, but network can only have an input of type tensor3 and tensor4. Wrapper function can be included to convert tensor1 and tensor2 to tensor3 and tensor4. Make sure that tensor3 and tensor4 are returned as a list: [tensor3, tensor4]. *Default: None*
-- dim *(int)* - Integer which states over which singleton dimension to append batch over. *Default: None*
+- dim *(int)* - Integer which states over which singleton dimension to append batch over. DO NOT INPUT THIS PARAMETER IF NOT REQUIRED *Default: None*
 - override_dim_constraint *(bool)* - States whether to override the constraint that all input *args must have the same number of dimensions. *Default: False*
 - delta *(float)* - Delta used for finite difference computations. *Default: 1e-5*
 ### Returns
