@@ -121,8 +121,6 @@ class JacrevFinite:
 
         # Concatenate with original tensor
         batch_tensor = torch.cat((tensor, append_tensor), dim=dim)  
-        print(batch_tensor.shape)
-
         self.batch_size = batch_tensor.size(dim)
 
         # Replace original tensor with batch_tensor: -----------------------------
@@ -145,8 +143,6 @@ class JacrevFinite:
             new_inputs.append(repeated_tensor)
 
         new_inputs.insert(self.num_args, batch_tensor)
-        for input in new_inputs:
-            print(input.shape)
 
         self.new_dim = dim
         return new_inputs
@@ -179,7 +175,6 @@ class JacrevFinite:
             Tensor: Output of the function.
         """
         output = self.function(*input2)
-        print(output.shape, 'out')
         return output
     
     def jacobian_forward(self, output):
