@@ -10,7 +10,7 @@ Computes the jacobian of `function` with respect to the *args at index `num_args
 - wrapper *(function)* - Optional, takes *args and converts it into inputs for functions. Only used in certain cases. i.e. if Jacobian is taken with respect to tensor1 and tensor2, but function can only have an input of type tensor3 and tensor4. Wrapper function can be included to convert tensor1 and tensor2 to tensor3 and tensor4. Make sure that tensor3 and tensor4 are returned as a list: [tensor3, tensor4]. *Default: None*
 - dim *(int)* - Integer which states over which singleton dimension to append batch over. If None, a singleton dimension at dimension 0 is added. *Default: None*
 - override_dim_constraint *(bool)* - States whether to override the constraint that all input *args must have the same number of dimensions. *Default: False*
-- delta *(float)* - Delta used for finite difference computations. *Default: 1e-5*
+- delta *(float)* - Delta used for finite difference computations. Delta is most stable (most accurate derivatives) at 1e-4 to 1e-5. *Default: 1e-5*
 ### Returns
   Returns the Jacobian of `function` with respect to the *args at index `num_args`
   
