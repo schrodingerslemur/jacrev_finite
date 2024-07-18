@@ -34,7 +34,7 @@ def assertTensorEqual(a, b, abs_tol=1e-9, mean_tol=1e-9):
         print(f"Error:\nmean error: {mean}, max error: {max}")
     return isEqual
 
-# Assert values are similiar to torch.func.jacrev
+# Assert values are similiar to torch.func.jacrev --------------------------------------------------------------------
 input1 = torch.randn((100,100), dtype=torch.float64)
 input2 = torch.randn((100,100), dtype=torch.float64)
 
@@ -43,7 +43,7 @@ jacobian_finite = JacrevFinite(function=function, num_args=0)(input1, input2)
     
 print(assertTensorEqual(jacobian_auto, jacobian_finite))
 
-# Assert values can be appended over different dim
+# Assert values can be appended over different singleton dims --------------------------------------------------------------------
 input3 = torch.randn((64,1,64), dtype=torch.float64)
 input4 = torch.randn((64,1,64), dtype=torch.float64)
 input5 = torch.randn
@@ -55,7 +55,7 @@ jacobian_finite2 = JacrevFinite(function=function, num_args=0, dim=1)(input3, in
 print(assertTensorEqual(jacobian_finite1, jacobian_finite2))
 print(assertTensorEqual(jacobian_auto1, jacobian_finite1))
 
-# Compare values for network forward passes
+# Compare values for network forward passes -----------------------------------------------------------------------------
 net = Network(5,5,128).double()
 
 input6 = torch.randn((20,5), dtype=torch.float64)
