@@ -2,16 +2,16 @@ import torch
 from torch import Tensor
 
 class JacrevFinite:
-    def __init__(self, *, network, num_args, wrapper=None, dim=None, delta=1e-5, override_dim_constraint=False):
+    def __init__(self, *, function, num_args, wrapper=None, dim=None, delta=1e-5, override_dim_constraint=False):
         """
         Initialize JacrevFinite object.
 
         Args:
-            network (callable): Network function that takes input2 to output.
+            function (callable): Function that takes input2 to output.
             wrapper (callable, optional): Function that takes input1 (with delta added) to input2. Defaults to None.
             dim (int, optional): The dimension to append the batch over. Defaults to None. Must be a singleton dimension.
                 E.g. for (8,1,16,2) --> dim can be 1 
-                Ensure network can handle multiple batches over that dimension
+                Ensure function can handle multiple batches over that dimension
             num_args (int): Argument index over which to get Jacobian matrix with respect to.
 
         Constraints:
@@ -24,13 +24,13 @@ class JacrevFinite:
         assert isinstance(num_args, int), 'num_args must be int'
         assert isinstance(dim, int) or dim is None, 'dim must be int or None'
     
-        self.network = network
+        self.function = function
         self.wrapper = wrapper
         self.num_args = num_args
         self.delta = delta
         self.dim = dim
-
         self.override = override_dim_constraint
+
 
     def __call__(self, *args):
         """
@@ -49,7 +49,7 @@ class JacrevFinite:
             self.inputs = args[0]
             if not isinstance(self.inputs, Tensor):
                 self.inputs = torch.tensor(self.inputs)
-            self.inputs = self.inputs.unsqueeze(0)
+            self.inputs = self.inputs.unsqueeze(0).to(torch.float64)
             self.inputs = list(self.inputs)
 
         else:
@@ -67,7 +67,7 @@ class JacrevFinite:
         # Forward passes
         input1 = self.delta_forward() # changes self.inputs
         input2 = self.wrapper_forward(input1)
-        output = self.net_forward(input2)
+        output = self.func_forward(input2)
         jacobian = self.jacobian_forward(output)
 
         return jacobian
@@ -121,6 +121,7 @@ class JacrevFinite:
 
         # Concatenate with original tensor
         batch_tensor = torch.cat((tensor, append_tensor), dim=dim)  
+        print(batch_tensor.shape)
 
         self.batch_size = batch_tensor.size(dim)
 
@@ -144,7 +145,10 @@ class JacrevFinite:
             new_inputs.append(repeated_tensor)
 
         new_inputs.insert(self.num_args, batch_tensor)
+        for input in new_inputs:
+            print(input.shape)
 
+        self.new_dim = dim
         return new_inputs
     
     def wrapper_forward(self, input1):
@@ -160,23 +164,22 @@ class JacrevFinite:
         if self.wrapper is None:
             input2 = input1
         else:
-            # Passed in as *args, not as a list. self.wrapper can be defined as wrapper(self, input0, input1, ...)
             input2 = self.wrapper(*input1)
             
         return input2
     
-    def net_forward(self, input2):
+    def func_forward(self, input2):
         """
-        Apply the network function to input2.
+        Apply the function to input2.
 
         Args:
             input2 (list/tuple/iterable): Input list from wrapper_forward.
 
         Returns:
-            Tensor: Output of the network.
+            Tensor: Output of the function.
         """
-        # Passed in as *args, not as a list. self.network can be defined as network(self, input0, input1, ...)
-        output = self.network(*input2)
+        output = self.function(*input2)
+        print(output.shape, 'out')
         return output
     
     def jacobian_forward(self, output):
@@ -184,7 +187,7 @@ class JacrevFinite:
         Computes the Jacobian matrix.
 
         Args:
-            output (Tensor): Output from net_forward.
+            output (Tensor): Output from func_forward.
 
         Returns:
             Tensor: Computed Jacobian matrix.
@@ -197,9 +200,15 @@ class JacrevFinite:
         input_len = len(input_delta_shape)
         output_len = len(output_shape)
 
-        # Compute the Jacobian using finite differences
-        ref = output[0]
-        jacobian = (output[1:] - ref) / self.delta
+        # Determine over which dimension to do finite difference (subtract and divide delta)
+        batch_output_shape = list(output.shape)
+        dim = batch_output_shape.index(self.batch_size)
+
+        # Finite difference to obtain Jacobian
+        ref = output.select(dim,0)
+        output_transposed = output.transpose(0, dim)
+        jacobian = (output_transposed[1:] - ref)/self.delta
+        jacobian = jacobian.transpose(0,dim)
 
         # Reshape and permute the Jacobian to the desired shape
         jacobian = jacobian.reshape(jacobian_init)
@@ -217,7 +226,7 @@ class JacrevFinite:
             list: The output dimensions.
         """
         inputs = self.wrapper_forward(self.inputs)
-        output = self.net_forward(inputs)
+        output = self.func_forward(inputs)
         output_dim = list(output.shape)
 
         return output_dim
