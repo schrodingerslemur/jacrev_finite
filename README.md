@@ -12,7 +12,7 @@ Computes the jacobian of `network` with respect to the *args at index `num_args`
 - override_dim_constraint *(bool)* - States whether to override the constraint that all input *args must have the same number of dimensions. *Default: False*
 - delta *(float)* - Delta used for finite difference computations. *Default: 1e-5*
 ### Returns
-  Returns the Jacobian of `network` with respect to the *args at `num_args`
+  Returns the Jacobian of `network` with respect to the *args at index `num_args`
   
 ##### Wrapper (optional)
   E.g. if derivative wants to be taken with respect to q_cur, p_cur, q_cur_7, p_cur_7 but the inputs into the network are q_traj and p_traj, a wrapper can be used to convert q_cur, p_cur, q_cur_7, p_cur_7 into q_traj and p_traj after the delta has been added onto one of the 4 initial inputs.
