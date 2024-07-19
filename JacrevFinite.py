@@ -58,6 +58,7 @@ class JacrevFinite:
             self.inputs = [inputs if isinstance(inputs, Tensor) else \
                            torch.tensor(inputs, dtype=torch.float64) for inputs in args]
         
+        # Checks that all the tensors have the same number of dimensions
         if self.override is False:
             first_dim = self.inputs[0].dim()
             for tensor in self.inputs:
