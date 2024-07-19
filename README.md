@@ -11,7 +11,7 @@ JacrevFinite(*, function, num_args, wrapper=None, dim=None, override_dim_constra
 - **dim** *(int, optional)*: Specifies the dimension to append batches over. If **`None`**, a singleton dimension at dimension 0 is added. *Default: None*
 - **override_dim_constraint** *(bool, optional)*: Allows overriding the constraint that all input arguments must have the same number of dimensions. *Default: False*
 - **delta** *(float, optionol)*: Step size used for finite difference computations. The most stable delta values are between 1e-4 and 1e-5. *Default: 1e-5*
-- **method** *(str, optional)*: Either 'plus' or 'minus'. Specifies whether delta should be added or subtracted for finite difference computations. Both methods should yield similar results but can be interchanged if accuracy is sub-par. *Default: 'plus'*
+- **method** *(str, optional)*: Either `'plus'` or `'minus'`. Specifies whether delta should be added or subtracted for finite difference computations. Both methods should yield similar results but can be interchanged if accuracy is sub-par. *Default: 'plus'*
   
 ### Returns
 Returns the Jacobian of **`function`** with respect to the arguments at index **`num_args`**.
