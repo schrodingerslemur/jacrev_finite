@@ -166,43 +166,55 @@ from LLUF_class import LLUF_class
 #     train.verbose(0, 'init_config')
 #     print('end  ------- initial learning configurations -------- ')
 
-# ------------------------------------------------IMPLEMENTATION----------------------------------------------------------------------
-
     # for e in range(maindict["start_epoch"], maindict["end_epoch"]):
 
     #     cntr = 0
     #     for qpl_input, qpl_label in loader.train_loader:
 
-    #         mydevice.load(qpl_input)
-    #         q_traj, p_traj, q_label, p_label, l_init = utils.pack_data(qpl_input, qpl_label)
+# ------------------------------------------------IMPLEMENTATION----------------------------------------------------------------------
+
+            mydevice.load(qpl_input)
+            q_traj, p_traj, q_label, p_label, l_init = utils.pack_data(qpl_input, qpl_label)
+
+            # q_traj,p_ttaj [traj,nsamples,nparticles,dim]
+            # q_label,p_label,l_init [nsamples,nparticles,dim]
 
             networks = [train.prepare_data_obj, train.mlvv, l_init]
-            lluf = LLUF_class(networks) 
+            lluf = LLUF_jacrev(networks) 
             q_cur, p_cur, q_traj_7, p_traj_7 = lluf.preprocess(q_traj, p_traj)
+
+            # q_traj_7, p_traj_7 [7,1,16,2]
+            # q_cur, p_cur [1,1,16,2]
             
             print('-------------------------------------q---------------------------------------')
-            jacobian = JacrevFinite(network=lluf.network,dim=1,wrapper=lluf.wrapper, num_args=0)(q_cur, p_cur, q_traj_7, p_traj_7)
+            jacobian = JacrevFinite(function=lluf.q_network,dim=1,wrapper=lluf.wrapper, num_args=0,delta=1e-5)(q_cur, p_cur, q_traj_7, p_traj_7)
             jacobian = jacobian.sum(dim=(0,1,2,3,4)) # jacobian = [outputdim, inputdim]
 
-            jacobian_actual = jacrev(lluf.full_forward, argnums=0)(q_cur, p_cur, q_traj_7, p_traj_7)
+            jacobian_actual = jacrev(lluf.q_forward, argnums=0)(q_cur, p_cur, q_traj_7, p_traj_7)
             jacobian_actual = jacobian_actual.sum(dim=(0,1,2,3,4))
 
             print('----------------JacrevFinite function----------------')
             print(jacobian)
             print('----------------jacobian_actual-----------------------')
             print(jacobian_actual)
+
+            print('mean_error', jacobian_actual.sub(jacobian).abs().mean())
+            print('max_error', jacobian_actual.sub(jacobian).abs().max())
 
             print('------------------------------------p----------------------------------------')
-            jacobian = JacrevFinite(network=lluf.network,dim=1,wrapper=lluf.wrapper, num_args=1)(q_cur, p_cur, q_traj_7, p_traj_7)
+            jacobian = JacrevFinite(function=lluf.p_network,dim=1,wrapper=lluf.wrapper, num_args=1, delta=1e-5)(q_cur, p_cur, q_traj_7, p_traj_7)
             jacobian = jacobian.sum(dim=(0,1,2,3,4)) # jacobian = [outputdim, inputdim]
 
-            jacobian_actual = jacrev(lluf.full_forward, argnums=1)(q_cur, p_cur, q_traj_7, p_traj_7)
+            jacobian_actual = jacrev(lluf.p_forward, argnums=1)(q_cur, p_cur, q_traj_7, p_traj_7)
             jacobian_actual = jacobian_actual.sum(dim=(0,1,2,3,4))
 
             print('----------------JacrevFinite function----------------')
             print(jacobian)
             print('----------------jacobian_actual-----------------------')
             print(jacobian_actual)
+
+            print('mean_error', jacobian_actual.sub(jacobian).abs().mean())
+            print('max_error', jacobian_actual.sub(jacobian).abs().max())
 
 # -------------------------------------------------------------------------------------------------------------------------------------
 
