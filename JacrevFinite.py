@@ -2,7 +2,7 @@ import torch
 from torch import Tensor
 
 class JacrevFinite:
-    def __init__(self, *, function, num_args, wrapper=None, dim=None, delta=1e-5, override_dim_constraint=False):
+    def __init__(self, *, function, num_args, wrapper=None, dim=None, delta=1e-5, override_dim_constraint=False, method='plus'):
         """
         Initialize JacrevFinite object.
 
@@ -23,6 +23,8 @@ class JacrevFinite:
         """
         assert isinstance(num_args, int), 'num_args must be int'
         assert isinstance(dim, int) or dim is None, 'dim must be int or None'
+        assert isinstance(override_dim_constraint, bool), 'override_dim_constraint must be bool'
+        assert method in ['plus', 'minus'], 'method must be \'plus\' or \'minus\''
     
         self.function = function
         self.wrapper = wrapper
@@ -30,7 +32,7 @@ class JacrevFinite:
         self.delta = delta
         self.dim = dim
         self.override = override_dim_constraint
-
+        self.method = method
 
     def __call__(self, *args):
         """
@@ -116,8 +118,11 @@ class JacrevFinite:
         delta_tensor = torch.eye(num_rep, dtype =tensor.dtype, device=tensor.device)*self.delta   
         delta_tensor = delta_tensor.reshape(reshape_dim).permute(permute_dim)
 
-        # Add the two tensors together
-        append_tensor = repeated_tensor + delta_tensor    
+        # Add or minus the tensors together
+        if self.method == 'plus':
+            append_tensor = repeated_tensor + delta_tensor
+        else:
+            append_tensor = repeated_tensor - delta_tensor
 
         # Concatenate with original tensor
         batch_tensor = torch.cat((tensor, append_tensor), dim=dim)  
@@ -208,7 +213,10 @@ class JacrevFinite:
         jacobian = jacobian.reshape(jacobian_init)
         permute_order = list(range(input_len, input_len + output_len)) + list(range(input_len))
         jacobian = jacobian.permute(*permute_order)
-
+        
+        # For negative delta instance
+        if self.method == 'minus':
+            jacobian = torch.neg(jacobian) # Changed
         return jacobian
     
     def get_outputdim(self):
