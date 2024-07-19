@@ -7,19 +7,26 @@ class JacrevFinite:
         Initialize JacrevFinite object.
 
         Args:
-            function (callable): Function that takes input2 to output.
-            wrapper (callable, optional): Function that takes input1 (with delta added) to input2. Defaults to None.
-            dim (int, optional): The dimension to append the batch over. Defaults to None. Must be a singleton dimension.
-                E.g. for (8,1,16,2) --> dim can be 1 
-                Ensure function can handle multiple batches over that dimension
-            num_args (int): Argument index over which to get Jacobian matrix with respect to.
+            function (callable): Function that takes one or more arguments and returns a single tensor.
+            num_args (int): Index of the arguments to compute the Jacobian with respect to
+            wrapper (callable, optional): Function to convert *args into inputs for main function, used when main function cannot directly accept *args. 
+                Wrapper should return list of transformed inputs. Default: None
+            dim (int, optional): Specifies the dimension to append batches over. If None, a singleton dimension at dimension 0 is added.
+                Must be a singleton dimension.
+            delta (float, optional): Step size used for finite difference computations. Most stable at 1e-5 or 1e-4. Default: 1e-5
+            override_dim_constraint (bool, optional): Overrides constraint that input arguments must have same number of dimensions. Default: False
+            method (str, optional): Either 'plus' or 'minus'. Specifies whether delta should be added or subtracted for finite difference computations. 
+                Both methods should yield similar results but can be interchanged if accuracy is sub-par. Default: 'plus'         
 
         Constraints:
-            Inputs must have the same number of dimensions (.dim() must be equal); add singleton dimensions if necessary
+            Inputs must have the same number of dimensions (.dim() must be equal)
+            Function must only have one output
 
         Raises:
             AssertionError: If num_args is not an int.
             AssertionError: If dim is not an int or None.
+            AssertionError: if override_dim_constraint is not bool.
+            AssertionError: If method is not 'plus' or 'minus'
         """
         assert isinstance(num_args, int), 'num_args must be int'
         assert isinstance(dim, int) or dim is None, 'dim must be int or None'
@@ -129,13 +136,13 @@ class JacrevFinite:
         batch_tensor = torch.cat((tensor, append_tensor), dim=dim)  
         self.batch_size = batch_tensor.size(dim)
 
-        # Replace original tensor with batch_tensor: -----------------------------
+        # Replace inputs with batch_tensor and ensure all tensors have same batch size: --------------------------
         inputs_copy = self.inputs.copy()
         inputs_copy.pop(self.num_args)
 
         new_inputs = []
 
-        # Make all tensors have the same batch size
+        # Repeating other tensors to ensure same batch size
         for input_tensor in inputs_copy:
             input_tensor = input_tensor.clone()
             
