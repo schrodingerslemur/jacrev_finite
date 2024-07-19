@@ -2,32 +2,52 @@
 ```bash
 JacrevFinite(*, function, num_args, wrapper=None, dim=None, override_dim_constraint=False, delta=1e-5)(*args)
 ```
-Computes the jacobian of `function` with respect to the *args at index `num_args` using finite differences as a replacement to `torch.func.jacrev`
+**`JacrevFinite`** computes the Jacobian of a given **`function`** with respect to the arguments at the specified **`num_args`** index using finite differences, providing an alternative to **`torch.func.jacrev`**.
 
 ### Parameters
-- function *(function)* - A Python function which takes one or more arguments and returns one tensor (Note: there is a constraint that the function must only have 1 output)
-- num_args *(int)* - Integer which states which arguments to get the Jacobian with respect to.
-- wrapper *(function)* - Optional, takes *args and converts it into inputs for functions. Only used in certain cases. i.e. if Jacobian is taken with respect to tensor1 and tensor2, but function can only have an input of type tensor3 and tensor4. Wrapper function can be included to convert tensor1 and tensor2 to tensor3 and tensor4. Make sure that tensor3 and tensor4 are returned as a list: [tensor3, tensor4]. *Default: None*
-- dim *(int)* - Integer which states over which singleton dimension to append batch over. If None, a singleton dimension at dimension 0 is added. *Default: None*
-- override_dim_constraint *(bool)* - States whether to override the constraint that all input *args must have the same number of dimensions. *Default: False*
-- delta *(float)* - Delta used for finite difference computations. Delta is most stable (most accurate derivatives) at 1e-4 to 1e-5. *Default: 1e-5*
-### Returns
-  Returns the Jacobian of `function` with respect to the *args at index `num_args`
+- **function** *(function)*: A Python function that takes one or more arguments and returns a single tensor. Note: the function must have only one output.
+- **num_args** *(int)*: Index of the arguments to compute the Jacobian with respect to.
+- **wrapper** *(function, optional)*: A function to convert *args into inputs for the main function, used when the main function cannot directly accept *args. The wrapper should return a list of transformed inputs. *Default: None*
+- **dim** *(int, optional)*: Specifies the dimension to append batches over. If **`None`**, a singleton dimension at dimension 0 is added. *Default: None*
+- **override_dim_constraint** *(bool, optional)*: Allows overriding the constraint that all input arguments must have the same number of dimensions. *Default: False*
+- **delta** *(float, optionol)*: Step size used for finite difference computations. The most stable delta values are between 1e-4 and 1e-5. *Default: 1e-5*
   
-##### Wrapper (optional)
-  E.g. if derivative wants to be taken with respect to q_cur, p_cur, q_cur_7, p_cur_7 but the inputs into the function are q_traj and p_traj, a wrapper can be used to convert q_cur, p_cur, q_cur_7, p_cur_7 into q_traj and p_traj after the delta has been added onto one of the 4 initial inputs.
+### Returns
+Returns the Jacobian of **`function`** with respect to the arguments at index **`num_args`**.
+  
+### How it works  
+The function takes the input at index num_args (e.g., a tensor of size [1,16,2]) and creates multiple batches where delta is added to each element. The batches are passed through the function, and the Jacobian is calculated using the finite difference method 
+(
+𝑓
+(
+𝑥
++
+ℎ
+)
+−
+𝑓
+(
+𝑥
+)
+)
+/
+𝛿
+.
+
+### Wrapper (optional)
+If the Jacobian is needed with respect to specific inputs but the function requires different inputs, a wrapper can be used. For example, if the derivative is taken with respect to **`q_cur`**, **`p_cur`**, **`q_cur_7`**, **`p_cur_7`** but the function inputs are **`q_traj`** and **`p_traj`**, the wrapper can convert **`q_cur`**, **`p_cur`**, **`q_cur_7`**, **`p_cur_7`** to **`q_traj`** and **`p_traj`**.
 #### Constraints
-- Input tensors/lists/tuples/ints/floats must have the same number of dimensions (e.g. (1,16,2) and (2,15,1) etc.)
-- Function should only have one output
+- Input arguments (tensors, lists, tuples, ints, floats) must have the same number of dimensions.
+- The function should have only one output.
 
 ## Installation
-`PyTorch` is needed for implementation.
-Download the [JacrevFinite.py](https://github.com/schrodingerslemur/jacrev_finite/blob/main/JacrevFinite.py) file and import the JacrevFinite class:
+**`PyTorch`** is required.
+Download the [**JacrevFinite.py**](https://github.com/schrodingerslemur/jacrev_finite/blob/main/JacrevFinite.py) file and import the JacrevFinite class:
 ```bash
 from JacrevFinite import JacrevFinite
 ```
-Copy and run the following code after downloading [JacrevFinite.py](https://github.com/schrodingerslemur/jacrev_finite/blob/main/JacrevFinite.py) file and **ensure the output prints 5 'True'(s)**
-<br>*The following code can also be found in [testcases.py](https://github.com/schrodingerslemur/jacrev_finite/edit/main/testcases.py)*
+Run the following code after downloading [**JacrevFinite.py**](https://github.com/schrodingerslemur/jacrev_finite/blob/main/JacrevFinite.py) file. Ensure the output prints five `True` statements.
+
 ```bash
 import torch
 import torch.nn as nn
@@ -152,5 +172,4 @@ input3 = torch.randn(2,3)
 function = update()
 jacobian = JacrevFinite(function = function.forward, num_args=0)(input1, input2, input3)
 ```
-Better example found in [LLUF](https://github.com/schrodingerslemur/jacrev_finite/tree/main/EXAMPLE_LLUF) folder where [LLUF_class](https://github.com/schrodingerslemur/jacrev_finite/tree/main/EXAMPLE_LLUF/LLUF_class.py) is custom class with function and wrapper methods defined, and [main](https://github.com/schrodingerslemur/jacrev_finite/tree/main/EXAMPLE_LLUF/main.py) is the code implementation. 
-
+A better examples is found in the [EXAMPLE_LLUF](https://github.com/schrodingerslemur/jacrev_finite/tree/main/EXAMPLE_LLUF) folder where [LLUF_class](https://github.com/schrodingerslemur/jacrev_finite/tree/main/EXAMPLE_LLUF/LLUF_class.py) defines custom class with function and wrapper methods, and [main](https://github.com/schrodingerslemur/jacrev_finite/tree/main/EXAMPLE_LLUF/main.py) contains the code implementation.
