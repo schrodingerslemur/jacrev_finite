@@ -47,7 +47,7 @@ Download the [**JacrevFinite.py**](https://github.com/schrodingerslemur/jacrev_f
 ```bash
 from JacrevFinite import JacrevFinite
 ```
-Run the code on the [testcases.py](https://github.com/schrodingerslemur/jacrev_finite/blob/main/testcases.py) file. Ensure the output prints five `True` statements.
+Run the code on the [testcases.py](https://github.com/schrodingerslemur/jacrev_finite/blob/main/testcases.py) file. Ensure the output prints five `True` statements. If not, change **`mode`** to **`minus`**.
 
 ## Examples
 ### Example usage
