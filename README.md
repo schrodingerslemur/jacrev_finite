@@ -35,6 +35,16 @@ The function takes the input at index num_args (e.g., a tensor of size [1,16,2])
 𝛿
 .
 
+### Delta
+Due to floating point precision, delta is most stable at 1e-4 to 1e-5 for finite difference calculations. 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/cbc42af9-3a7c-4135-b668-8ae4205e8faf" alt="Finite difference and Autograd derivatives vs. Delta" />
+</p>
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/3a31bbb2-860f-49d8-9be7-d2a08c589a4e" alt="Percentage error vs. delta" />
+</p>
+
 ### Wrapper (optional)
 If the Jacobian is needed with respect to specific inputs but the function requires different inputs, a wrapper can be used. For example, if the derivative is taken with respect to **`q_cur`**, **`p_cur`**, **`q_cur_7`**, **`p_cur_7`** but the function inputs are **`q_traj`** and **`p_traj`**, the wrapper can convert **`q_cur`**, **`p_cur`**, **`q_cur_7`**, **`p_cur_7`** to **`q_traj`** and **`p_traj`**.
 #### Constraints
