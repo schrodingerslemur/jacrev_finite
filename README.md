@@ -1,4 +1,5 @@
-# JacrevFinite
+# JacrevFinite 
+Find more details on [this pdf](https://github.com/schrodingerslemur/jacrev_finite/blob/main/Jacrev.pdf).
 ```bash
 JacrevFinite(*, function, num_args, wrapper=None, dim=None, override_dim_constraint=False, delta=1e-5, method='plus')(*args)
 ```
