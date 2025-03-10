@@ -1,4 +1,4 @@
-# JacrevFinite 
+# JacrevFinite
 Find more details on [this pdf](https://github.com/schrodingerslemur/jacrev_finite/blob/main/Jacrev.pdf).
 ```bash
 JacrevFinite(*, function, num_args, wrapper=None, dim=None, override_dim_constraint=False, delta=1e-5, method='plus')(*args)
@@ -13,12 +13,12 @@ JacrevFinite(*, function, num_args, wrapper=None, dim=None, override_dim_constra
 - **override_dim_constraint** *(bool, optional)*: Allows overriding the constraint that all input arguments must have the same number of dimensions. *Default: False*
 - **delta** *(float, optionol)*: Step size used for finite difference computations. The most stable delta values are between 1e-4 and 1e-5. *Default: 1e-5*
 - **method** *(str, optional)*: Either `'plus'` or `'minus'`. Specifies whether delta should be added or subtracted for finite difference computations. Both methods should yield similar results but can be interchanged if accuracy is sub-par. *Default: 'plus'*
-  
+
 ### Returns
 Returns the Jacobian of **`function`** with respect to the arguments at index **`num_args`**.
-  
-### How it works  
-The function takes the input at index num_args (e.g., a tensor of size [1,16,2]) and creates multiple batches where delta is added to each element. The batches are passed through the function, and the Jacobian is calculated using the finite difference method 
+
+### How it works
+The function takes the input at index num_args (e.g., a tensor of size [1,16,2]) and creates multiple batches where delta is added to each element. The batches are passed through the function, and the Jacobian is calculated using the finite difference method
 (
 𝑓
 (
@@ -37,7 +37,7 @@ The function takes the input at index num_args (e.g., a tensor of size [1,16,2])
 .
 
 ### Delta
-Due to floating point precision, delta is most stable at 1e-4 to 1e-5 for finite difference calculations. 
+Due to floating point precision, delta is most stable at 1e-4 to 1e-5 for finite difference calculations.
 <p align="center">
   <img src="https://github.com/user-attachments/assets/cbc42af9-3a7c-4135-b668-8ae4205e8faf" alt="Finite difference and Autograd derivatives vs. Delta" />
 </p>
@@ -54,11 +54,11 @@ If the Jacobian is needed with respect to specific inputs but the function requi
 
 ## Installation
 **`PyTorch`** is required.
-Download the [**JacrevFinite.py**](https://github.com/schrodingerslemur/jacrev_finite/blob/main/JacrevFinite.py) file and import the JacrevFinite class:
+Download the [**JacrevFinite.py**](https://github.com/schrodingerslemur/jacrev_finite/blob/main/src/JacrevFinite.py) file and import the JacrevFinite class:
 ```bash
 from JacrevFinite import JacrevFinite
 ```
-Run the code on the [testcases.py](https://github.com/schrodingerslemur/jacrev_finite/blob/main/testcases.py) file. Ensure the output prints five `True` statements. If not, change **`mode`** to **`minus`**.
+Run the code on the [testcases.py](https://github.com/schrodingerslemur/jacrev_finite/blob/main/tests/testcases.py) file. Ensure the output prints five `True` statements. If not, change **`mode`** to **`minus`**.
 
 ## Examples
 ### Example usage
@@ -90,7 +90,7 @@ def wrapper(seq1a, seq1b, seq2a, seq2b):
 
 jacobian = JacrevFinite(function=f, wrapper=wrapper, num_args=0)(seq1a, seq1b, seq2a, seq2b)
 ```
-More examples can be found in [testcases.py](https://github.com/schrodingerslemur/jacrev_finite/blob/main/testcases.py)
+More examples can be found in [testcases.py](https://github.com/schrodingerslemur/jacrev_finite/blob/main/tests/testcases.py)
 
 ### Integration with custom class
 ```bash
@@ -107,4 +107,4 @@ input3 = torch.randn(2,3)
 function = update()
 jacobian = JacrevFinite(function = function.forward, num_args=0)(input1, input2, input3)
 ```
-A better examples is found in the [EXAMPLE_LLUF](https://github.com/schrodingerslemur/jacrev_finite/tree/main/EXAMPLE_LLUF) folder where [LLUF_class](https://github.com/schrodingerslemur/jacrev_finite/tree/main/EXAMPLE_LLUF/LLUF_class.py) defines custom class with function and wrapper methods, and [main](https://github.com/schrodingerslemur/jacrev_finite/tree/main/EXAMPLE_LLUF/main.py) contains the code implementation.
+A better examples is found in the [EXAMPLE_LLUF](https://github.com/schrodingerslemur/jacrev_finite/tree/main/EXAMPLE) folder where [LLUF_class](https://github.com/schrodingerslemur/jacrev_finite/tree/main/EXAMPLE/LLUF_class.py) defines custom class with function and wrapper methods, and [main](https://github.com/schrodingerslemur/jacrev_finite/tree/main/EXAMPLE/main.py) contains the code implementation.
